@@ -1,0 +1,6 @@
+fastapi~=0.115.2
+pydantic~=2.9.2
+requests~=2.32.3
+firebase-admin~=6.5.0
+fastapi[standard]~=0.115.2
+fastapi_sessions~=0.3.2
