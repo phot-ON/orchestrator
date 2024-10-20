@@ -98,10 +98,6 @@ async def validateSession(sessionID:str, Authorization:str, request: Request, re
             return "VALID"
     response.status_code = status.HTTP_401_UNAUTHORIZED
     return "INVALID"
-@app.get("/401")
-async def error(request: Request, response: Response):
-    response.status_code = status.HTTP_401_UNAUTHORIZED
-    return "TOKEN ERROR"
 
 @app.post("/friend")
 async def friend(body:Friend, request: Request, response: Response, Authorization: Annotated[str | None, Header()] = None) -> str:
@@ -109,9 +105,12 @@ async def friend(body:Friend, request: Request, response: Response, Authorizatio
     if validity[0]:
         user1 = validity[1]["email"]
         user2 = body.username
-        makeFriend(user1, user2)
-        return "SUCCESS"
-    response.status_code = status.HTTP_401_UNAUTHORIZED
+        if makeFriend(user1, user2):
+            return "SUCCESS"
+        else:
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+    else:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
     return "INVALID REQUEST"
 
 @app.get("/friend")
@@ -150,11 +149,14 @@ async def create(body:Create, request: Request, response: Response, Authorizatio
 @app.post("/join")
 async def join(body:Join, request: Request, response: Response, Authorization: Annotated[str | None, Header()] = None) -> Session:
     validity = valid(Authorization)
+    print(validity, Authorization)
     if validity[0]:
         user = validity[1]["email"]
+        print(user)
         sessID = joinSession(user, body.sessionID)
+        print(sessID)
         if sessID != "false":
-            return Session(sessionID=sessID, valid=True)
+            return Session(sessionID=body.sessionID, valid=True)
     response.status_code = status.HTTP_401_UNAUTHORIZED
     return Session(sessionID="", valid=False)
 
@@ -164,6 +166,7 @@ async def upload(body:Upload, request: Request, response: Response, Authorizatio
     if validity[0]:
         user = validity[1]["email"]
         users = getSessionUsers(body.sessionID)
+
         if uploadImage(body.imageID, body.sessionID):
             notifyImage(user, users, body.imageID)
             return "SUCCESS"

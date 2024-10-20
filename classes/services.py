@@ -21,7 +21,8 @@ def valid(token):
 
 
 def makeFriend(user1:str, user2:str):
-    resp = requests.post(f"{const.BASE_URL_SAT}/AddFriend", data={"Username1":user1, "Username2":user2})
+    resp = requests.post(f"{const.BASE_URL_SAT}/AddFriend", data={"Username1":user1, "Username2":user2}).text
+    return resp == "true"
 
 def getFriends(user:str):
     resp = requests.get(f"{const.BASE_URL_SAT}/GetFriends?Username={user}")
@@ -45,7 +46,7 @@ def createSession(user:str):
 
 def joinSession(user:str, sessionID:str):
     resp = requests.post(f"{const.BASE_URL_SAT}/JoinSession", data={"Username":user, "SessionID":sessionID}).text
-    return resp == "true"
+    return resp
 
 def uploadImage(image:str, sessionID:str):
     resp = requests.post(f"{const.BASE_URL_SAT}/UploadImage", data={"Image":image, "SessionID":sessionID}).text
@@ -65,7 +66,7 @@ def leaveSession(user, sessionID:str):
 
 def inviteFriend(user:str, friend:str, sessionID:str):
     friends = getFriends(user)
-    if friend in friends:
+    if friend in friends.users:
         notify(user, getFMC(friend), sessionID)
         return True
     return False
@@ -76,6 +77,7 @@ def notifyImage(user:str, users:list, imageID:str):
             uploadToUser(getFMC(i), imageID)
 
 def uploadToUser(fmc:str, imageID:str):
+    print("User FCM = ", fmc)
     if fmc == "":
         return False
     message = messaging.Message(
@@ -83,7 +85,12 @@ def uploadToUser(fmc:str, imageID:str):
         data={"imageID":imageID},
         token=fmc
     )
-    response = messaging.send(message)
+    try:
+        print("Notifying", fmc)
+        response = messaging.send(message)
+        print("Notified")
+    except Exception as e:
+        print(e)
 
     return True
 
@@ -91,11 +98,13 @@ def uploadToUser(fmc:str, imageID:str):
 def notify(user:str, fmc:str, sessionID:str):
     if fmc == "":
         return False
+    print("Notifying by", user)
     message = messaging.Message(
-        notification=messaging.Notification(title="INVITATION FROM PHOT.ON USER", body=f"{user} has invited you to a session"),
+        notification=messaging.Notification(title=f"INVITATION FROM PHOT.ON USER {user}", body=f"session id : {sessionID}"),
         data={"sessionID":sessionID},
         token=fmc
     )
     response = messaging.send(message)
+    print("Notified")
 
     return True
